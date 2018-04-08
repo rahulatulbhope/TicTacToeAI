@@ -1,94 +1,125 @@
 #include <stdio.h>
-#include <stdbool.h>
 
+struct Position{
 
-char player = 'x';
-char opponent = 'o';
+    int pos;
+};
 
-bool movesLeft(char board[3][3]){
+char gridChar(int i) {
+    switch(i) {
+        case -1:
+            return 'X';
+        case 0:
+            return ' ';
+        case 1:
+            return 'O';
+    }
+}
 
-    for(int i=0;i<3;i++){
-        for(int j=0;j<3;j++){
+void draw(int b[9]) {
+    printf(" %c | %c | %c\n",gridChar(b[0]),gridChar(b[1]),gridChar(b[2]));
+    printf("---+---+---\n");
+    printf(" %c | %c | %c\n",gridChar(b[3]),gridChar(b[4]),gridChar(b[5]));
+    printf("---+---+---\n");
+    printf(" %c | %c | %c\n",gridChar(b[6]),gridChar(b[7]),gridChar(b[8]));
+}
 
-            if(board[i][j]=='')
-                return true;
+int win(const int board[9]) {
+    //determines if a player has won, returns 0 otherwise.
+    unsigned wins[8][3] = {{0,1,2},{3,4,5},{6,7,8},{0,3,6},{1,4,7},{2,5,8},{0,4,8},{2,4,6}};
+    int i;
+    for(i = 0; i < 8; ++i) {
+        if(board[wins[i][0]] != 0 &&
+           board[wins[i][0]] == board[wins[i][1]] &&
+           board[wins[i][0]] == board[wins[i][2]])
+            return board[wins[i][2]];
+    }
+    return 0;
+}
+
+int minimax(int board[9], int player) {
+    //How is the position like for player (their turn) on board?
+    int winner = win(board);
+    if(winner != 0) return winner*player;
+
+    int move = -1;
+    int score = -2;//Losing moves are preferred to no move
+    int i;
+    for(i = 0; i < 9; ++i) {//For all moves,
+        if(board[i] == 0) {//If legal,
+            board[i] = player;//Try the move
+            int thisScore = -minimax(board, player*-1);
+            if(thisScore > score) {
+                score = thisScore;
+                move = i;
+            }//Pick the one that's worst for the opponent
+            board[i] = 0;//Reset board after try
         }
     }
+    if(move == -1) return 0;
+    return score;
+}
 
-    return false;
+void computerMove(int board[9]) {
 
-
-    }
-
-    int checkVictory(char b[3][3]){
-        // Checking for Rows
-        for (int row = 0; row<3; row++)
-        {
-            if (b[row][0]==b[row][1] &&
-                b[row][1]==b[row][2])
-            {
-                if (b[row][0]==player)
-                    return +10;
-                else if (b[row][0]==opponent)
-                    return -10;
+    struct Position bestPos;
+    bestPos.pos = -1;
+    int score = -2;
+    int i;
+    for(i = 0; i < 9; ++i) {
+        if(board[i] == 0) {
+            board[i] = 1;
+            int tempScore = -minimax(board, -1);
+            board[i] = 0;
+            if(tempScore > score) {
+                score = tempScore;
+                bestPos.pos = i;
             }
         }
-
-        // Checking for Columns
-        for (int col = 0; col<3; col++)
-        {
-            if (b[0][col]==b[1][col] &&
-                b[1][col]==b[2][col])
-            {
-                if (b[0][col]==player)
-                    return +10;
-
-                else if (b[0][col]==opponent)
-                    return -10;
-            }
-        }
-
-        // Checking for Diagonals
-        if (b[0][0]==b[1][1] && b[1][1]==b[2][2])
-        {
-            if (b[0][0]==player)
-                return +10;
-            else if (b[0][0]==opponent)
-                return -10;
-        }
-
-        if (b[0][2]==b[1][1] && b[1][1]==b[2][0])
-        {
-            if (b[0][2]==player)
-                return +10;
-            else if (b[0][2]==opponent)
-                return -10;
-        }
-
-        // Else if none of them have won then return 0
-        return 0;
-
-
-
     }
+    //returns a score based on minimax tree at a given node.
+    board[bestPos.pos] = 1;
+}
 
-
-
-
-
+void playerMove(int board[9]) {
+    int move = 0;
+    do {
+        printf("\nInput move ([0..8]): ");
+        scanf("%d", &move);
+        if(board[move] != 0) {
+            printf("Its Already Occupied !");
+        }
+        printf("\n");
+    } while (move >= 9 || move < 0 && board[move] == 0 && board[move] != 0);
+    board[move] = -1;
+}
 
 int main() {
-
-
-    char board[3][3] =
-            {
-                    { 'x', 'o', 'x' },
-                    { 'o', 'o', 'x' },
-                    { '_', '_', '_' }
-            };
-
-
-
-
-    return 0;
+    int board[9] = {0,0,0,0,0,0,0,0,0};
+    //computer squares are 1, player squares are -1.
+    printf("Computer: O, You: X\nPlay (1)st or (2)nd? ");
+    int player=0;
+    scanf("%d",&player);
+    printf("\n");
+    unsigned turn;
+    for(turn = 0; turn < 9 && win(board) == 0; ++turn) {
+        if((turn+player) % 2 == 0)
+            computerMove(board);
+        else {
+            draw(board);
+            playerMove(board);
+        }
+    }
+    switch(win(board)) {
+        case 0:
+            printf("A draw.\n");
+            break;
+        case 1:
+            draw(board);
+            printf("You lose.\n");
+            break;
+        case -1:
+            printf("You win.\n");
+            break;
+    }
 }
